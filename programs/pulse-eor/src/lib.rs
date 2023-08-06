@@ -14,6 +14,7 @@ pub mod pulse_eor {
         ctx: Context<SetupHoldingWallet>,
         _organisation_id: String,
     ) -> Result<()> {
-        instructions::setup_holding_wallet::setup_holding_wallet(ctx, _organisation_id)
+        print!("Setting up holding wallet");
+        instructions::employee::setup_holding_wallet(ctx, _organisation_id)
     }
 }

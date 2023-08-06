@@ -1,5 +1,5 @@
-pub use setup_holding_wallet::*;
-pub use setup_organisation::*;
+pub use employee::*;
+pub use organisation::*;
 
-pub mod setup_holding_wallet;
-pub mod setup_organisation;
+pub mod employee;
+pub mod organisation;
