@@ -18,7 +18,6 @@ import {
     TOKEN_PROGRAM_ID,
     createAssociatedTokenAccountInstruction,
     getAssociatedTokenAddressSync,
-    transfer,
 } from "@solana/spl-token";
 import { BN } from "bn.js";
 

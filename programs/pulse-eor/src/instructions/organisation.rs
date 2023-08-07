@@ -1,9 +1,6 @@
 use crate::state::{organisation::Organisation, HoldingWalletState};
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::{self, AssociatedToken},
-    token::{self, Mint, Token, TokenAccount, Transfer, TransferChecked},
-};
+use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer, TransferChecked};
 
 pub fn setup_organisation(ctx: Context<SetupOrganisation>) -> Result<()> {
     Ok(())
@@ -80,7 +77,6 @@ pub struct PayOrganisationEmployee<'info> {
     pub payer_token_account: Account<'info, TokenAccount>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
 }
 
 impl<'info> PayOrganisationEmployee<'info> {

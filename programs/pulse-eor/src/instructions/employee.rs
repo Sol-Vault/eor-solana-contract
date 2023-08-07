@@ -1,5 +1,6 @@
 use crate::state::HoldingWalletState;
 use anchor_lang::prelude::*;
+use anchor_spl::token::{Mint, Token, TokenAccount, Transfer, self};
 
 pub fn setup_holding_wallet(
     ctx: Context<SetupHoldingWallet>,
@@ -17,7 +18,28 @@ pub fn setup_holding_wallet(
     holding_wallet_account.meteora_allocation = 40;
     holding_wallet_account.holding_allocation = 60;
 
+    Ok(())
+}
 
+pub fn employee_withdraw(
+    ctx: Context<EmployeeWithdraw>,
+    _organisation_id: String,
+    amount: u64,
+) -> Result<()> {
+    if amount > ctx.accounts.holding_wallet_token_account.amount {
+        panic!("Not enough balance")
+    }
+    let cpi_accounts = Transfer {
+        from: ctx.accounts.holding_wallet_token_account.to_account_info(),
+        to: ctx.accounts.withdrawer_token_account.to_account_info(),
+        authority: ctx.accounts.withdrawer.to_account_info(),
+    };
+
+    let cpi_program = ctx.accounts.token_program.to_account_info();
+
+    let decimals = ctx.accounts.token_mint.decimals as u32;
+
+    token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount * 10u64.pow(decimals))?;
     Ok(())
 }
 
@@ -40,5 +62,31 @@ pub struct SetupHoldingWallet<'info> {
     pub holding_wallet_account: Account<'info, HoldingWalletState>,
     #[account(mut)]
     pub employee: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(_organisation_id: String, _amount: u64)]
+pub struct EmployeeWithdraw<'info> {
+    #[account(
+        seeds = [b"holding-state", withdrawer.key().as_ref(), _organisation_id.as_bytes().as_ref()],
+        bump = holding_wallet_state.bump,
+    )]
+    pub holding_wallet_state: Account<'info, HoldingWalletState>,
+    #[account(
+        mut,
+        seeds = [b"holding-wallet", withdrawer.key().as_ref()],
+        bump=holding_wallet_state.wallet_bump,
+    )]
+    pub holding_wallet: AccountInfo<'info>,
+    #[account(mut)]
+    pub holding_wallet_token_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub withdrawer: Signer<'info>,
+    #[account(mut)]
+    pub withdrawer_token_account: Account<'info, TokenAccount>,
+    pub token_mint: Account<'info, Mint>,
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
