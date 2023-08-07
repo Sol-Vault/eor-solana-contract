@@ -11,20 +11,14 @@ pub fn pay_organisation_employee(
     _organisation_id: String,
     amount: u64,
 ) -> Result<()> {
-    let token_mint = &ctx.accounts.token_mint;
-
     // let meteora_allocation_percentage = ctx.accounts.holding_wallet_state.clone().meteora_allocation as u64;
     let holding_allocation_percentage = ctx.accounts.holding_wallet_state.clone().holding_allocation as u64;
     // let meteora_allocation = meteora_allocation_percentage / 100;
     let holding_allocation = holding_allocation_percentage * amount / 100;
 
-    // Transfer holding allocation to holding wallet
-    // token::Mint
-    // token::transfer_checked();
-    // Transfer holding allocation to holding wallet
     token::transfer_checked(
         ctx.accounts.into_transfer_to_holding(),
-        holding_allocation * 10u64.pow(token_mint.decimals.into()),
+        holding_allocation,
         ctx.accounts.token_mint.decimals,
     )?;
     
@@ -45,14 +39,14 @@ pub struct SetupOrganisation<'info> {
 #[instruction(_organisation_id: String, _employee_id: String, _amount: u64)]
 pub struct PayOrganisationEmployee<'info> {
     #[account(
-        seeds = [b"holding_wallet", employee.key().as_ref()],
-        bump
+        seeds = [b"holding-wallet", employee.key().as_ref()],
+        bump=holding_wallet_state.wallet_bump,
     )]
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub holding_wallet: AccountInfo<'info>,
     #[account(
-        seeds = [b"holding_state", employee.key().as_ref(), _organisation_id.as_bytes().as_ref()],
-        bump
+        seeds = [b"holding-state", employee.key().as_ref(), _organisation_id.as_bytes().as_ref()],
+        bump = holding_wallet_state.bump,
     )]
     pub holding_wallet_state: Box<Account<'info, HoldingWalletState>>,
     #[account(mut)]
@@ -60,7 +54,14 @@ pub struct PayOrganisationEmployee<'info> {
     pub employee: AccountInfo<'info>,
     // Token Account stuff
     pub token_mint: Account<'info, Mint>,
-    #[account(mut)]
+    #[account(
+        init_if_needed,
+        seeds = [b"holding-wallet-token-account", employee.key().as_ref(), token_mint.key().as_ref()],
+        bump,
+        payer = payer,
+        token::mint = token_mint,
+        token::authority = payer,
+    )]
     pub holding_wallet_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub payer: Signer<'info>,
