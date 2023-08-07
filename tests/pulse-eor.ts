@@ -50,6 +50,7 @@ describe("pulse-eor", () => {
     const employee = Keypair.generate();
     const organisationId = "abc";
     const employeeId = "123";
+    const organisation = Keypair.generate();
 
     const holdingWallet = Keypair.generate();
     const holdingWalletAccount = Keypair.generate();
@@ -100,6 +101,19 @@ describe("pulse-eor", () => {
         console.log("Airdrop status", status);
     })
 
+    before(async () => {
+        const orgSignatureAirDrop = await connection.requestAirdrop(organisation.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL)
+        await confirmSignature(orgSignatureAirDrop, commitment);
+        const mint = Keypair.generate();
+        const token = await createMint(
+            connection,
+            organisation,
+            mint.publicKey,
+            mint.publicKey,
+            10,
+        )
+    })
+
     it("Wallet PDA and Wallet State PDA initialized!", async () => {
         const balance = await connection.getBalance(employee.publicKey);
         console.log("Balance", balance);
@@ -120,25 +134,8 @@ describe("pulse-eor", () => {
     });
 
     it("Transfer 10 Token to Holding Wallet", async () => {
-        // Set up holding wallet and state
-        // try {
-        //     const tx = await program.methods.setupHoldingWallet(
-        //         organisationId
-        //     ).accounts({
-        //         holdingWallet: holdingWalletPda,
-        //         holdingWalletAccount: holdingWalletStatePda,
-        //         employee: employee.publicKey,
-        //         systemProgram: SystemProgram.programId,
-        //     }).signers([employee]).rpc();
-        // } catch (err) {
-        //     console.log("[Set up holding wallet] Transaction error", err);
-        // }
-
         try {
             // Create mint and transfer mint to organisation
-            const organisation = Keypair.generate();
-            const orgSignatureAirDrop = await connection.requestAirdrop(organisation.publicKey, 100000000000)
-            await confirmSignature(orgSignatureAirDrop, commitment);
 
             console.log("Creating mint");
             const mint = Keypair.generate();
@@ -228,12 +225,12 @@ describe("pulse-eor", () => {
             //     organisation,
             //     1*10**10,
             // )
-                
+
 
             try {
                 console.log("Transfering to holding wallet");
                 const orgtransfer = await program.methods.
-                    payOrganisationEmployee(organisationId, employeeId, new BN(1)).
+                    payOrganisationEmployee(organisationId, employeeId, new BN(3)).
                     accounts({
                         holdingWallet: holdingWalletPda,
                         holdingWalletState: holdingWalletStatePda,
@@ -243,13 +240,12 @@ describe("pulse-eor", () => {
                         payer: organisation.publicKey,
                         payerTokenAccount: organisationATA,
                         tokenProgram: TOKEN_PROGRAM_ID,
-                        systemProgram: SystemProgram.programId,
                     }).signers([organisation]).rpc();
 
 
 
                 console.log("Your transaction signature", orgtransfer);
-                
+
                 await confirmSignature(orgtransfer, commitment);
                 const tokenAccounts2 = await connection.getTokenAccountBalance(
                     organisationATA
@@ -267,6 +263,53 @@ describe("pulse-eor", () => {
 
                     console.log("Holding wallet token account balance", tokenBalance.value.amount);
                 }
+
+                try {
+
+                    const employeeATA = await createAssociatedTokenAccount(
+                        connection,
+                        employee,
+                        token,
+                        employee.publicKey,
+                    )
+
+                    const withdrawSignature = await program.methods.employeeWithdraw(
+                        organisationId,
+                        new BN(1),
+                    ).accounts({
+                        holdingWalletState: holdingWalletStatePda,
+                        holdingWallet: holdingWalletPda,
+                        holdingWalletTokenAccount: holdingWalletATAPda,
+                        withdrawer: employee.publicKey,
+                        withdrawerTokenAccount: employeeATA,
+                        tokenMint: token,
+                        tokenProgram: TOKEN_PROGRAM_ID,
+                        systemProgram: SystemProgram.programId,
+                    }).signers([employee]).rpc();
+
+                    await confirmSignature(withdrawSignature, commitment);
+
+                    const tokenBalance = await connection.getTokenAccountBalance(
+                        employeeATA
+                    );
+                    console.log("Employee token account balance", tokenBalance.value.amount);
+                    
+                    const tokenAccoutsHoldingWallets = await connection.getTokenAccountsByOwner(holdingWalletPda, {
+                        programId: TOKEN_PROGRAM_ID
+                    });
+    
+                    for (let i = 0; i < tokenAccoutsHoldingWallets.value.length; i++) {
+                        const tokenBalance = await connection.getTokenAccountBalance(
+                            tokenAccoutsHoldingWallets.value[i].pubkey
+                        );
+    
+                        console.log("Holding wallet token account balance", tokenBalance.value.amount);
+                    }
+                    
+                } catch (err) {
+                    console.log("[withdraw from holding] ", err);
+                }
+
             } catch (err) {
                 console.log("[payOrganisationEmployee] ", err);
             }
@@ -274,4 +317,5 @@ describe("pulse-eor", () => {
             console.log("[Create mint and transfer to organisation] Transaction error", err);
         }
     })
+
 });
