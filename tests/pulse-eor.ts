@@ -17,6 +17,8 @@ import {
     mintTo,
     TOKEN_PROGRAM_ID,
     createAssociatedTokenAccountInstruction,
+    getAssociatedTokenAddressSync,
+    transfer,
 } from "@solana/spl-token";
 import { BN } from "bn.js";
 
@@ -167,36 +169,105 @@ describe("pulse-eor", () => {
                 10 * 10 ** 10,
             )
 
+            const tokenAccounts3 = await connection.getTokenAccountBalance(
+                organisationATA
+            );
+
+            console.log("Organisation token account initial", tokenAccounts3.value.uiAmount);
+
             await confirmSignature(mintToOrgSignature, commitment);
 
             console.log("Creating holding wallet associated token account");
-            const holdingWalletATAPda = PublicKey.findProgramAddressSync(
-                [
-                    Buffer.from("holding-wallet-token-account"),
-                    employee.publicKey.toBuffer(),
-                    token.toBuffer(),
-                ],
-                program.programId
-            )[0]
+            // const holdingWalletATAPda = PublicKey.findProgramAddressSync(
+            //     [
+            //         Buffer.from("holding-wallet-token-account"),
+            //         employee.publicKey.toBuffer(),
+            //         token.toBuffer(),
+            //     ],
+            //     program.programId
+            // )[0]
+
+            const holdingWalletATAPda = getAssociatedTokenAddressSync(
+                token,
+                holdingWalletPda,
+                true
+            )
+
+            const holdingWalletATAInstruction = createAssociatedTokenAccountInstruction(
+                organisation.publicKey,
+                holdingWalletATAPda,
+                holdingWalletPda,
+                token,
+            )
+
+            console.log("Creating holding wallet associated token account");
+            const blockhash = await connection.getLatestBlockhash();
+            const transactionMessage = new TransactionMessage(
+                {
+                    instructions: [holdingWalletATAInstruction],
+                    payerKey: organisation.publicKey,
+                    recentBlockhash: blockhash.blockhash,
+                }
+            ).compileToV0Message();
+
+            const transaction = new VersionedTransaction(transactionMessage);
+
+            transaction.sign([organisation]);
+
+            const holdingWalletATASig = await connection.sendRawTransaction(transaction.serialize(), {
+                skipPreflight: true,
+                preflightCommitment: commitment,
+            });
+
+            await confirmSignature(holdingWalletATASig, commitment);
+
+            // await transfer(
+            //     connection,
+            //     organisation,
+            //     organisationATA,
+            //     holdingWalletATAPda,
+            //     organisation,
+            //     1*10**10,
+            // )
+                
 
             try {
                 console.log("Transfering to holding wallet");
                 const orgtransfer = await program.methods.
-                payOrganisationEmployee(organisationId, employeeId, new BN(10 * 10 ** 10)).
-                accounts({
-                    holdingWallet: holdingWalletPda,
-                    holdingWalletState: holdingWalletStatePda,
-                    employee: employee.publicKey,
-                    tokenMint: token,
-                    holdingWalletTokenAccount: holdingWalletATAPda,
-                    payer: organisation.publicKey,
-                    payerTokenAccount: organisationATA,
-                    tokenProgram: TOKEN_PROGRAM_ID,
-                    systemProgram: SystemProgram.programId,
-                }).signers([organisation]).rpc();
+                    payOrganisationEmployee(organisationId, employeeId, new BN(1)).
+                    accounts({
+                        holdingWallet: holdingWalletPda,
+                        holdingWalletState: holdingWalletStatePda,
+                        employee: employee.publicKey,
+                        tokenMint: token,
+                        holdingWalletTokenAccount: holdingWalletATAPda,
+                        payer: organisation.publicKey,
+                        payerTokenAccount: organisationATA,
+                        tokenProgram: TOKEN_PROGRAM_ID,
+                        systemProgram: SystemProgram.programId,
+                    }).signers([organisation]).rpc();
+
+
 
                 console.log("Your transaction signature", orgtransfer);
-            await confirmSignature(orgtransfer, commitment);
+                
+                await confirmSignature(orgtransfer, commitment);
+                const tokenAccounts2 = await connection.getTokenAccountBalance(
+                    organisationATA
+                );
+                console.log("Organisation token account Post", tokenAccounts2.value.amount);
+
+                const tokenAccoutsHoldingWallets = await connection.getTokenAccountsByOwner(holdingWalletPda, {
+                    programId: TOKEN_PROGRAM_ID
+                });
+
+                for (let i = 0; i < tokenAccoutsHoldingWallets.value.length; i++) {
+                    const tokenBalance = await connection.getTokenAccountBalance(
+                        tokenAccoutsHoldingWallets.value[i].pubkey
+                    );
+
+                    console.log("Holding wallet token account balance", tokenBalance.value.amount);
+                }
             } catch (err) {
                 console.log("[payOrganisationEmployee] ", err);
             }

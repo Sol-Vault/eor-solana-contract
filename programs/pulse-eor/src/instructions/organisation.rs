@@ -1,6 +1,9 @@
 use crate::state::{organisation::Organisation, HoldingWalletState};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
+use anchor_spl::{
+    associated_token::{self, AssociatedToken},
+    token::{self, Mint, Token, TokenAccount, Transfer, TransferChecked},
+};
 
 pub fn setup_organisation(ctx: Context<SetupOrganisation>) -> Result<()> {
     Ok(())
@@ -12,16 +15,31 @@ pub fn pay_organisation_employee(
     amount: u64,
 ) -> Result<()> {
     // let meteora_allocation_percentage = ctx.accounts.holding_wallet_state.clone().meteora_allocation as u64;
-    let holding_allocation_percentage = ctx.accounts.holding_wallet_state.clone().holding_allocation as u64;
+    // let holding_allocation_percentage =
+    //     ctx.accounts.holding_wallet_state.clone().holding_allocation as u64;
     // let meteora_allocation = meteora_allocation_percentage / 100;
-    let holding_allocation = holding_allocation_percentage * amount / 100;
+    // let holding_allocation = holding_allocation_percentage * amount / 100;
 
-    token::transfer_checked(
-        ctx.accounts.into_transfer_to_holding(),
-        holding_allocation,
-        ctx.accounts.token_mint.decimals,
-    )?;
-    
+    // print!("Paying organisation employee {}", holding_allocation);
+    let balance = ctx.accounts.payer_token_account.amount;
+    if balance < amount {
+        panic!("Not enough balance")
+    }
+    let cpi_accounts = Transfer {
+        from: ctx.accounts.payer_token_account.to_account_info(),
+        to: ctx.accounts.holding_wallet_token_account.to_account_info(),
+        authority: ctx.accounts.payer.to_account_info(),
+    };
+    let cpi_program = ctx.accounts.token_program.to_account_info();
+
+    let decimals = ctx.accounts.token_mint.decimals as u32;
+    token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount * 10u64.pow(decimals))?;
+
+    // let holding_wallet_balance = ctx.accounts.holding_wallet_token_account.amount;
+    // if holding_wallet_balance < amount {
+    //     panic!("Not enough balance")
+    // }
+
     Ok(())
 }
 
@@ -54,14 +72,7 @@ pub struct PayOrganisationEmployee<'info> {
     pub employee: AccountInfo<'info>,
     // Token Account stuff
     pub token_mint: Account<'info, Mint>,
-    #[account(
-        init_if_needed,
-        seeds = [b"holding-wallet-token-account", employee.key().as_ref(), token_mint.key().as_ref()],
-        bump,
-        payer = payer,
-        token::mint = token_mint,
-        token::authority = payer,
-    )]
+    #[account(mut)]
     pub holding_wallet_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -73,9 +84,7 @@ pub struct PayOrganisationEmployee<'info> {
 }
 
 impl<'info> PayOrganisationEmployee<'info> {
-    fn into_transfer_to_holding(
-        &self,
-    ) -> CpiContext<'_, '_, '_, 'info, TransferChecked<'info>> {
+    fn into_transfer_to_holding(&self) -> CpiContext<'_, '_, '_, 'info, TransferChecked<'info>> {
         let cpi_accounts = TransferChecked {
             from: self.payer_token_account.to_account_info(),
             to: self.holding_wallet_token_account.to_account_info(),
