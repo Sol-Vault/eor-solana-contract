@@ -4,11 +4,17 @@ skip-lint = false
 [programs.localnet]
 pulse_eor = "DafQCS2iwRB48xvjYa1Nsxz5wFDuMXq37qCmy4Sov8ce"
 
+[programs.devnet]
+pulse_eor = "DafQCS2iwRB48xvjYa1Nsxz5wFDuMXq37qCmy4Sov8ce"
+
+[programs.mainnet]
+pulse_eor = "DafQCS2iwRB48xvjYa1Nsxz5wFDuMXq37qCmy4Sov8ce"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "/Users/ruixiantay/.config/solana/id.json"
 
 [scripts]

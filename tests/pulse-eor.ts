@@ -29,7 +29,7 @@ describe("pulse-eor", () => {
     const program = anchor.workspace.PulseEor as Program<PulseEor>;
 
     const commitment: Commitment = "finalized";
-    const connection = new Connection("http://127.0.0.1:8899", {
+    const connection = new Connection("https://api.devnet.solana.com", {
         commitment,
         wsEndpoint: "ws://localhost:8900/",
     });
@@ -123,7 +123,7 @@ describe("pulse-eor", () => {
                 organisationId
             ).accounts({
                 holdingWallet: holdingWalletPda,
-                holdingWalletAccount: holdingWalletStatePda,
+                holdingWalletState: holdingWalletStatePda,
                 employee: employee.publicKey,
                 systemProgram: SystemProgram.programId,
             }).signers([employee]).rpc();
@@ -241,9 +241,6 @@ describe("pulse-eor", () => {
                         payerTokenAccount: organisationATA,
                         tokenProgram: TOKEN_PROGRAM_ID,
                     }).signers([organisation]).rpc();
-
-
-
                 console.log("Your transaction signature", orgtransfer);
 
                 await confirmSignature(orgtransfer, commitment);

@@ -10,7 +10,7 @@ pub fn setup_holding_wallet(
     let holding_wallet_bump = *ctx.bumps.get("holding_wallet").unwrap();
     let holding_state_bump = *ctx.bumps.get("holding_wallet_account").unwrap();
 
-    let holding_wallet_account = &mut ctx.accounts.holding_wallet_account;
+    let holding_wallet_account = &mut ctx.accounts.holding_wallet_state;
     holding_wallet_account.payee = *ctx.accounts.employee.key;
     holding_wallet_account.wallet_bump = holding_wallet_bump;
     holding_wallet_account.bump = holding_state_bump;
@@ -71,7 +71,7 @@ pub struct SetupHoldingWallet<'info> {
         seeds = [b"holding-state", employee.key().as_ref(), _organisation_id.as_bytes().as_ref()],
         bump
     )]
-    pub holding_wallet_account: Account<'info, HoldingWalletState>,
+    pub holding_wallet_state: Account<'info, HoldingWalletState>,
     #[account(mut)]
     pub employee: Signer<'info>,
     pub system_program: Program<'info, System>,
