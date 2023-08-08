@@ -8,7 +8,7 @@ pub fn setup_holding_wallet(
 ) -> Result<()> {
     print!("Setting up holding wallet");
     let holding_wallet_bump = *ctx.bumps.get("holding_wallet").unwrap();
-    let holding_state_bump = *ctx.bumps.get("holding_wallet_account").unwrap();
+    let holding_state_bump = *ctx.bumps.get("holding_wallet_state").unwrap();
 
     let holding_wallet_account = &mut ctx.accounts.holding_wallet_state;
     holding_wallet_account.payee = *ctx.accounts.employee.key;
@@ -30,11 +30,6 @@ pub fn employee_withdraw(
         panic!("Not enough balance")
     }
 
-    let (pda, _bump_seed) = Pubkey::find_program_address(
-        &[b"holding-wallet", ctx.accounts.withdrawer.key().as_ref()],
-        &ctx.program_id
-    );
-
     let cpi_accounts = Transfer {
         from: ctx.accounts.holding_wallet_token_account.to_account_info(),
         to: ctx.accounts.withdrawer_token_account.to_account_info(),
@@ -49,9 +44,8 @@ pub fn employee_withdraw(
     ];
     let signer: &[&[&[u8]]; 1] = &[&signer_seeds[..]];
     let cpi_context = CpiContext::new(cpi_program, cpi_accounts).with_signer(signer);
-    let decimals = ctx.accounts.token_mint.decimals as u32;
 
-    token::transfer(cpi_context, amount * 10u64.pow(decimals))?;
+    token::transfer(cpi_context, amount)?;
     Ok(())
 }
 

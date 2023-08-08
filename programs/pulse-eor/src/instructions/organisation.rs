@@ -30,7 +30,7 @@ pub fn pay_organisation_employee(
     let cpi_program = ctx.accounts.token_program.to_account_info();
 
     let decimals = ctx.accounts.token_mint.decimals as u32;
-    token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount * 10u64.pow(decimals))?;
+    token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
 
     // let holding_wallet_balance = ctx.accounts.holding_wallet_token_account.amount;
     // if holding_wallet_balance < amount {
