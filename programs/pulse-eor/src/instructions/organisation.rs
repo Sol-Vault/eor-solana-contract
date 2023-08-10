@@ -1,6 +1,7 @@
 use crate::state::{organisation::Organisation, HoldingWalletState};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer, TransferChecked};
+use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
+use mercurial_vault::{program::Vault, cpi::accounts::DepositWithdrawLiquidity};
 // use mercurial_vault::program::Vault;
 
 pub fn setup_organisation(ctx: Context<SetupOrganisation>) -> Result<()> {
@@ -12,23 +13,31 @@ pub fn pay_organisation_employee(
     _organisation_id: String,
     amount: u64,
 ) -> Result<()> {
-    // let meteora_allocation_percentage = ctx.accounts.holding_wallet_state.clone().meteora_allocation as u64;
-    // let holding_allocation_percentage =
-    //     ctx.accounts.holding_wallet_state.clone().holding_allocation as u64;
-    // let meteora_allocation = meteora_allocation_percentage / 100;
-    // let holding_allocation = holding_allocation_percentage * amount / 100;
-
-    // print!("Paying organisation employee {}", holding_allocation);
-
-    // let mer_context = CpiContext::new(
-    //     ctx.accounts._vault_program.to_account_info(),
-    // );
-    // let mer = mercurial_vault::cpi::deposit(ctx, token_amount, minimum_lp_token_amount);
-
     let balance = ctx.accounts.payer_token_account.amount;
     if balance < amount {
         panic!("Not enough balance")
     }
+
+    let meteora_allocation_percentage = ctx.accounts.holding_wallet_state.clone().meteora_allocation as u64;
+    let meteora_allocation = meteora_allocation_percentage / 100;
+    let holding_allocation = balance - meteora_allocation;
+
+    // print!("Paying organisation employee {}", holding_allocation);
+    
+    let mercurial_accounts = DepositWithdrawLiquidity {
+        vault: ctx.accounts.vault.to_account_info(),
+        token_vault: ctx.accounts.token_vault.to_account_info(),
+        lp_mint: ctx.accounts.lp_mint.to_account_info(),
+        user_token: ctx.accounts.holding_wallet_token_account.to_account_info(),
+        user_lp: ctx.accounts.holding_wallet_lp_token_account.to_account_info(),
+        user: ctx.accounts.payer.to_account_info(),
+        token_program: ctx.accounts.token_program.to_account_info(),
+    };
+
+    let mer_context = CpiContext::new(
+        ctx.accounts.mercurial_program.to_account_info(),
+        mercurial_accounts,
+    );
     let cpi_accounts = Transfer {
         from: ctx.accounts.payer_token_account.to_account_info(),
         to: ctx.accounts.holding_wallet_token_account.to_account_info(),
@@ -36,8 +45,8 @@ pub fn pay_organisation_employee(
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
 
-    let decimals = ctx.accounts.token_mint.decimals as u32;
-    token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
+    mercurial_vault::cpi::deposit(mer_context, meteora_allocation, 0)?;
+    token::transfer(CpiContext::new(cpi_program, cpi_accounts), holding_allocation)?;
 
     // let holding_wallet_balance = ctx.accounts.holding_wallet_token_account.amount;
     // if holding_wallet_balance < amount {
@@ -83,17 +92,14 @@ pub struct PayOrganisationEmployee<'info> {
     #[account(mut)]
     pub payer_token_account: Account<'info, TokenAccount>,
     /// CHECK: This is not dangerous because we don't read or write from this account
+    #[account(mut)]
+    pub vault: AccountInfo<'info>,
+    #[account(mut)]
+    pub token_vault: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub lp_mint: Account<'info, Mint>,
+    #[account(mut)]
+    pub holding_wallet_lp_token_account: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
-}
-
-impl<'info> PayOrganisationEmployee<'info> {
-    fn into_transfer_to_holding(&self) -> CpiContext<'_, '_, '_, 'info, TransferChecked<'info>> {
-        let cpi_accounts = TransferChecked {
-            from: self.payer_token_account.to_account_info(),
-            to: self.holding_wallet_token_account.to_account_info(),
-            authority: self.payer.to_account_info(),
-            mint: self.token_mint.to_account_info(),
-        };
-        CpiContext::new(self.token_program.to_account_info(), cpi_accounts)
-    }
+    pub mercurial_program: Program<'info, Vault>,
 }
