@@ -18,3 +18,4 @@ default = []
 [dependencies]
 anchor-lang = {version = "0.28.0", features = ["init-if-needed"]}
 anchor-spl = "0.28.0"
+mercurial-vault = { version="0.4.2", features= ["cpi"] }

@@ -1,6 +1,7 @@
 use crate::state::{organisation::Organisation, HoldingWalletState};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer, TransferChecked};
+// use mercurial_vault::program::Vault;
 
 pub fn setup_organisation(ctx: Context<SetupOrganisation>) -> Result<()> {
     Ok(())
@@ -18,6 +19,12 @@ pub fn pay_organisation_employee(
     // let holding_allocation = holding_allocation_percentage * amount / 100;
 
     // print!("Paying organisation employee {}", holding_allocation);
+
+    // let mer_context = CpiContext::new(
+    //     ctx.accounts._vault_program.to_account_info(),
+    // );
+    // let mer = mercurial_vault::cpi::deposit(ctx, token_amount, minimum_lp_token_amount);
+
     let balance = ctx.accounts.payer_token_account.amount;
     if balance < amount {
         panic!("Not enough balance")
