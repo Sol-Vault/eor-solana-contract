@@ -31,9 +31,11 @@ pub mod pulse_eor {
     pub fn employee_withdraw(
         ctx: Context<EmployeeWithdraw>,
         _organisation_id: String,
-        _amount: u64,
+        amount: u64,
+        virtual_price: f64,
+
     ) -> Result<()> {
         print!("Employee withdrawing");
-        instructions::employee::employee_withdraw(ctx, _organisation_id, _amount)
+        instructions::employee::employee_withdraw(ctx, _organisation_id, amount, virtual_price)
     }
 }
