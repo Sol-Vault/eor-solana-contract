@@ -67,7 +67,7 @@ pub fn employee_withdraw(
     let cpi_mercurial_withdraw_context = CpiContext::new(cpi_mercurial_program, cpi_mecurial_accounts).with_signer(signer);
     let cpi_context = CpiContext::new(cpi_program, cpi_accounts).with_signer(signer);
 
-    mercurial_vault::cpi::withdraw(cpi_mercurial_withdraw_context, num_lp_mint_to_withdraw, 0);
+    mercurial_vault::cpi::withdraw(cpi_mercurial_withdraw_context, num_lp_mint_to_withdraw, 0)?;
     token::transfer(cpi_context, amount)?;
     Ok(())
 }
