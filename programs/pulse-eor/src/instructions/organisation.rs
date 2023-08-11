@@ -2,11 +2,10 @@ use crate::state::{organisation::Organisation, HoldingWalletState};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use mercurial_vault::{program::Vault, cpi::accounts::DepositWithdrawLiquidity};
-// use mercurial_vault::program::Vault;
 
-pub fn setup_organisation(ctx: Context<SetupOrganisation>) -> Result<()> {
-    Ok(())
-}
+// pub fn setup_organisation(ctx: Context<SetupOrganisation>) -> Result<()> {
+//     Ok(())
+// }
 
 pub fn pay_organisation_employee(
     ctx: Context<PayOrganisationEmployee>,
@@ -19,20 +18,20 @@ pub fn pay_organisation_employee(
     }
 
     let meteora_allocation_percentage = ctx.accounts.holding_wallet_state.clone().meteora_allocation as u64;
-    let meteora_allocation = meteora_allocation_percentage / 100;
-    let holding_allocation = balance - meteora_allocation;
+    let meteora_allocation = amount * meteora_allocation_percentage / 100;
+    let holding_allocation = amount - meteora_allocation;
 
     // print!("Paying organisation employee {}", holding_allocation);
-    
     let mercurial_accounts = DepositWithdrawLiquidity {
         vault: ctx.accounts.vault.to_account_info(),
         token_vault: ctx.accounts.token_vault.to_account_info(),
         lp_mint: ctx.accounts.lp_mint.to_account_info(),
-        user_token: ctx.accounts.holding_wallet_token_account.to_account_info(),
+        user_token: ctx.accounts.payer_token_account.to_account_info(),
         user_lp: ctx.accounts.holding_wallet_lp_token_account.to_account_info(),
         user: ctx.accounts.payer.to_account_info(),
         token_program: ctx.accounts.token_program.to_account_info(),
     };
+    print!("After mercurial");
 
     let mer_context = CpiContext::new(
         ctx.accounts.mercurial_program.to_account_info(),
@@ -45,13 +44,13 @@ pub fn pay_organisation_employee(
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
 
+    print!("BEFORE mercurial");
     mercurial_vault::cpi::deposit(mer_context, meteora_allocation, 0)?;
-    token::transfer(CpiContext::new(cpi_program, cpi_accounts), holding_allocation)?;
+    print!("AFTER mercurial");
 
-    // let holding_wallet_balance = ctx.accounts.holding_wallet_token_account.amount;
-    // if holding_wallet_balance < amount {
-    //     panic!("Not enough balance")
-    // }
+    print!("BEFORE token transfer");
+    token::transfer(CpiContext::new(cpi_program, cpi_accounts), holding_allocation)?;
+    print!("AFTER token transfer");
 
     Ok(())
 }
@@ -91,9 +90,15 @@ pub struct PayOrganisationEmployee<'info> {
     pub payer: Signer<'info>,
     #[account(mut)]
     pub payer_token_account: Account<'info, TokenAccount>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
     #[account(mut)]
-    pub vault: AccountInfo<'info>,
+    pub payer_lp_token_account: Account<'info, TokenAccount>,
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    #[account(
+        mut,
+        has_one = token_vault,
+        has_one = lp_mint,
+    )]
+    pub vault: Box<Account<'info, mercurial_vault::state::Vault>>,
     #[account(mut)]
     pub token_vault: Account<'info, TokenAccount>,
     #[account(mut)]
