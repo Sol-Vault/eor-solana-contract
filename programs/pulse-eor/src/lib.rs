@@ -33,9 +33,19 @@ pub mod pulse_eor {
         _organisation_id: String,
         amount: u64,
         virtual_price: f64,
-
     ) -> Result<()> {
         print!("Employee withdrawing");
         instructions::employee::employee_withdraw(ctx, _organisation_id, amount, virtual_price)
+    }
+
+    pub fn adjust_meteora_allocation(
+        ctx: Context<AdjustMeteoraAllocation>,
+        _organisation_id: String,
+        meteora_allocation: u8,
+        amount_to_withdraw_from_mercurial: u64,
+        amount_to_deposit_to_mercurial: u64,
+    ) -> Result<()> {
+        print!("Adjusting meteora allocation");
+        instructions::employee::adjust_meteora_allocation(ctx, _organisation_id, meteora_allocation, amount_to_withdraw_from_mercurial, amount_to_deposit_to_mercurial)
     }
 }
