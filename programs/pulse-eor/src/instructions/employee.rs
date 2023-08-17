@@ -28,7 +28,8 @@ pub fn employee_withdraw(
     amount: u64,
     virtual_price: f64,
 ) -> Result<()> {
-    if amount > ctx.accounts.holding_wallet_token_account.amount {
+    let total_usdc = ctx.accounts.holding_wallet_token_account.amount + (virtual_price * ctx.accounts.holding_wallet_lp_token_account.amount as f64) as u64;
+    if amount > total_usdc {
         panic!("Not enough balance")
     }
     let holding_allocation = ctx.accounts.holding_wallet_state.holding_allocation;
