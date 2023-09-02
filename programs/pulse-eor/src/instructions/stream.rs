@@ -13,6 +13,14 @@ pub fn pay_contract(
         panic!("Not enough balance")
     }
 
+    if ctx.accounts.employee_contract.payee != *ctx.accounts.payer.to_account_info().key {
+        panic!("Payer is not the payee")
+    }
+
+    if ctx.accounts.organisation.stream_authority != *ctx.accounts.payer.to_account_info().key {
+        panic!("Payer is not the stream authority")
+    }
+
     let cpi_accounts = Transfer {
         from: ctx.accounts.streaming_wallet_token_account.to_account_info(),
         to: ctx.accounts.streaming_wallet_token_account.to_account_info(),

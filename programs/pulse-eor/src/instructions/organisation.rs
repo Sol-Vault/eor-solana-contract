@@ -66,12 +66,13 @@ pub fn setup_organisation(ctx: Context<SetupOrganisation>, _organisation_id: Str
     let organisation = &mut ctx.accounts.organisation;
     let bump = *ctx.bumps.get("organisation").unwrap();
     let streaming_wallet_bump = *ctx.bumps.get("streaming-wallet").unwrap();
-    
+
     let mut admins:  Vec<Pubkey> = Vec::new();
     admins.push(ctx.accounts.admin.key());
     organisation.admins = admins;
     organisation.bump = bump;
     organisation.stream_wallet_bump = streaming_wallet_bump;
+    organisation.stream_authority = ctx.accounts.stream_authority.key();
 
     Ok(())
 }
@@ -109,6 +110,7 @@ pub struct SetupOrganisation<'info> {
     pub streaming_wallet: AccountInfo<'info>,
     #[account(mut)]
     pub admin: Signer<'info>,
+    pub stream_authority: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
 
