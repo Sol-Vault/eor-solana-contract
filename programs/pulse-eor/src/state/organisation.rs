@@ -2,10 +2,11 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct Organisation {
-    id: String,
+    pub admins: Vec<Pubkey>,
+    pub bump: u8,
+    pub stream_wallet_bump: u8,
 }
 
 impl Organisation {
-    // Calculation of size: 24 + 8
-    pub const SIZE: usize = 32;
+    pub const SIZE: usize = 1 + 1 + 32 * 10;
 }

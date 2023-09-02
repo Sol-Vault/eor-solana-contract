@@ -1,7 +1,7 @@
-use crate::state::{organisation::Organisation, HoldingWalletState};
+use crate::state::{organisation::Organisation, HoldingWalletState, EmployeeContract};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
-use mercurial_vault::{program::Vault, cpi::accounts::DepositWithdrawLiquidity};
+use mercurial_vault::{cpi::accounts::DepositWithdrawLiquidity, program::Vault};
 
 // pub fn setup_organisation(ctx: Context<SetupOrganisation>) -> Result<()> {
 //     Ok(())
@@ -17,7 +17,8 @@ pub fn pay_organisation_employee(
         panic!("Not enough balance")
     }
 
-    let meteora_allocation_percentage = ctx.accounts.holding_wallet_state.clone().meteora_allocation as u64;
+    let meteora_allocation_percentage =
+        ctx.accounts.holding_wallet_state.clone().meteora_allocation as u64;
     let meteora_allocation = amount * meteora_allocation_percentage / 100;
     let holding_allocation = amount - meteora_allocation;
 
@@ -27,7 +28,10 @@ pub fn pay_organisation_employee(
         token_vault: ctx.accounts.token_vault.to_account_info(),
         lp_mint: ctx.accounts.lp_mint.to_account_info(),
         user_token: ctx.accounts.payer_token_account.to_account_info(),
-        user_lp: ctx.accounts.holding_wallet_lp_token_account.to_account_info(),
+        user_lp: ctx
+            .accounts
+            .holding_wallet_lp_token_account
+            .to_account_info(),
         user: ctx.accounts.payer.to_account_info(),
         token_program: ctx.accounts.token_program.to_account_info(),
     };
@@ -49,17 +53,60 @@ pub fn pay_organisation_employee(
     print!("AFTER mercurial");
 
     print!("BEFORE token transfer");
-    token::transfer(CpiContext::new(cpi_program, cpi_accounts), holding_allocation)?;
+    token::transfer(
+        CpiContext::new(cpi_program, cpi_accounts),
+        holding_allocation,
+    )?;
     print!("AFTER token transfer");
 
     Ok(())
 }
 
+pub fn setup_organisation(ctx: Context<SetupOrganisation>, _organisation_id: String) -> Result<()> {
+    let organisation = &mut ctx.accounts.organisation;
+    let bump = *ctx.bumps.get("organisation").unwrap();
+    let streaming_wallet_bump = *ctx.bumps.get("streaming-wallet").unwrap();
+    
+    let mut admins:  Vec<Pubkey> = Vec::new();
+    admins.push(ctx.accounts.admin.key());
+    organisation.admins = admins;
+    organisation.bump = bump;
+    organisation.stream_wallet_bump = streaming_wallet_bump;
+
+    Ok(())
+}
+
+pub fn setup_employee_contract(
+    ctx: Context<SetupEmployeeContract>,
+    _organisation_id: String,
+    _employee_id: String,
+    rate: u64,
+) -> Result<()> {
+    let bump = *ctx.bumps.get("employee_contract").unwrap();
+    let employee_contract = &mut ctx.accounts.employee_contract;
+    employee_contract.payee = ctx.accounts.payee.key();
+    employee_contract.bump = bump;
+    employee_contract.rate = rate;
+
+    Ok(())
+}
+
 #[derive(Accounts)]
-#[instruction(id: String)]
+#[instruction(_organisation_id: String)]
 pub struct SetupOrganisation<'info> {
-    #[account(init, payer = admin, space = Organisation::SIZE + 8, seeds = [id.as_bytes().as_ref()], bump)]
+    #[account(
+        init, 
+        payer = admin, 
+        space = Organisation::SIZE + 8, 
+        seeds = [b"organisation", _organisation_id.as_bytes().as_ref()], 
+        bump
+    )]
     pub organisation: Account<'info, Organisation>,
+    #[account(
+        seeds=[b"streaming-wallet", _organisation_id.as_bytes()],
+        bump,
+    )]
+    pub streaming_wallet: AccountInfo<'info>,
     #[account(mut)]
     pub admin: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -107,4 +154,27 @@ pub struct PayOrganisationEmployee<'info> {
     pub holding_wallet_lp_token_account: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
     pub mercurial_program: Program<'info, Vault>,
+}
+
+
+#[derive(Accounts)]
+#[instruction(_organisation_id: String, _employee_id: String)]
+pub struct SetupEmployeeContract<'info> {
+    #[account(
+        init,
+        payer = payer,
+        seeds = [b"employee-contract", organisation.key().as_ref(), _employee_id.as_bytes()],
+        bump,
+        space = EmployeeContract::SIZE,
+    )]
+    pub employee_contract: Box<Account<'info, EmployeeContract>>,
+    #[account(
+        seeds = [b"organisation", _organisation_id.as_bytes()],
+        bump,
+    )]
+    pub organisation: Box<Account<'info, Organisation>>,
+    pub payee: AccountInfo<'info>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    pub system_program: AccountInfo<'info>,
 }
