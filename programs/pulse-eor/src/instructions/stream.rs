@@ -6,6 +6,7 @@ use crate::state::{EmployeeContract, Organisation};
 pub fn pay_contract(
     ctx: Context<PayContract>,
     _organisation_id: String,
+    _employee_id: String,
     amount: u64,
 ) -> Result<()> {
     let balance = ctx.accounts.streaming_wallet_token_account.amount;
@@ -87,15 +88,25 @@ pub fn withdraw_from_stream_wallet(
 
 
 #[derive(Accounts)]
-#[instruction(_organisation_id: String)]
+#[instruction(_organisation_id: String, employee_id: String)]
 pub struct PayContract<'info> {
+    #[account(
+        mut,
+        seeds=[b"employee-contract", _organisation_id.as_bytes(), employee_id.as_bytes()],
+        bump = employee_contract.bump,
+    )]
     pub employee_contract: Account<'info, EmployeeContract>,
+    #[account(
+        seeds = [b"organisation", _organisation_id.as_bytes().as_ref()], 
+        bump=organisation.bump,
+    )]
     pub organisation: Account<'info, Organisation>,
     #[account(
         mut,
         seeds=[b"streaming-wallet", _organisation_id.as_bytes()],
         bump = organisation.stream_wallet_bump,
     )]
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub streaming_wallet: AccountInfo<'info>,
     #[account(mut)]
     pub streaming_wallet_token_account: Account<'info, TokenAccount>,
@@ -110,12 +121,17 @@ pub struct PayContract<'info> {
 #[derive(Accounts)]
 #[instruction(_organisation_id: String)]
 pub struct WithdrawFromStreamWallet<'info> {
+    #[account(
+        seeds = [b"organisation", _organisation_id.as_bytes().as_ref()], 
+        bump=organisation.bump,
+    )]
     pub organisation: Account<'info, Organisation>,
     #[account(
         mut,
         seeds=[b"streaming-wallet", _organisation_id.as_bytes()],
         bump = organisation.stream_wallet_bump,
     )]
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub streaming_wallet: AccountInfo<'info>,
     #[account(mut)]
     pub streaming_wallet_token_account: Account<'info, TokenAccount>,

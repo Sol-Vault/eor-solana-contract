@@ -104,9 +104,11 @@ pub struct SetupOrganisation<'info> {
     )]
     pub organisation: Account<'info, Organisation>,
     #[account(
+        mut,
         seeds=[b"streaming-wallet", _organisation_id.as_bytes()],
         bump,
     )]
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub streaming_wallet: AccountInfo<'info>,
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -165,7 +167,7 @@ pub struct SetupEmployeeContract<'info> {
     #[account(
         init,
         payer = payer,
-        seeds = [b"employee-contract", organisation.key().as_ref(), _employee_id.as_bytes()],
+        seeds = [b"employee-contract", _organisation_id.as_bytes(), _employee_id.as_bytes()],
         bump,
         space = EmployeeContract::SIZE,
     )]
@@ -175,8 +177,10 @@ pub struct SetupEmployeeContract<'info> {
         bump,
     )]
     pub organisation: Box<Account<'info, Organisation>>,
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub payee: AccountInfo<'info>,
     #[account(mut)]
     pub payer: Signer<'info>,
-    pub system_program: AccountInfo<'info>,
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub system_program: Program<'info, System>,
 }
