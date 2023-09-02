@@ -110,7 +110,7 @@ pub struct SetupOrganisation<'info> {
     pub streaming_wallet: AccountInfo<'info>,
     #[account(mut)]
     pub admin: Signer<'info>,
-    pub stream_authority: AccountInfo<'info>,
+    pub stream_authority: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
