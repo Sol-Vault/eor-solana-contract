@@ -14,7 +14,7 @@ pulse_eor = "DafQCS2iwRB48xvjYa1Nsxz5wFDuMXq37qCmy4Sov8ce"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "mainnet"
+cluster = "localnet"
 wallet = "/Users/ruixiantay/.config/solana/id.json"
 
 [scripts]

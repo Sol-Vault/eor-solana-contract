@@ -3,10 +3,6 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use mercurial_vault::{cpi::accounts::DepositWithdrawLiquidity, program::Vault};
 
-// pub fn setup_organisation(ctx: Context<SetupOrganisation>) -> Result<()> {
-//     Ok(())
-// }
-
 pub fn pay_organisation_employee(
     ctx: Context<PayOrganisationEmployee>,
     _organisation_id: String,
@@ -62,10 +58,13 @@ pub fn pay_organisation_employee(
     Ok(())
 }
 
-pub fn setup_organisation(ctx: Context<SetupOrganisation>, _organisation_id: String) -> Result<()> {
+pub fn setup_organisation(
+    ctx: Context<SetupOrganisation>,
+    _organisation_id: String
+) -> Result<()> {
     let organisation = &mut ctx.accounts.organisation;
     let bump = *ctx.bumps.get("organisation").unwrap();
-    let streaming_wallet_bump = *ctx.bumps.get("streaming-wallet").unwrap();
+    let streaming_wallet_bump = *ctx.bumps.get("streaming_wallet").unwrap();
 
     let mut admins:  Vec<Pubkey> = Vec::new();
     admins.push(ctx.accounts.admin.key());
