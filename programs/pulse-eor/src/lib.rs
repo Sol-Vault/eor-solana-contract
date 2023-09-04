@@ -74,16 +74,7 @@ pub mod pulse_eor {
         amount: u64,
     ) -> Result<()> {
         print!("Paying contract");
-        instructions::stream::pay_contract(ctx, _organisation_id, _employee_id, amount)
-    }
-
-    pub fn withdraw_from_stream_wallet(
-        ctx: Context<WithdrawFromStreamWallet>,
-        _organisation_id: String,
-        amount: u64,
-    ) -> Result<()> {
-        print!("Withdrawing from stream wallet");
-        instructions::stream::withdraw_from_stream_wallet(ctx, _organisation_id, amount)
+        instructions::stream::pay_contract(ctx, _organisation_id, _employee_id)
     }
     
 }

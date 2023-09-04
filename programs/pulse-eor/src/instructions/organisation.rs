@@ -1,6 +1,6 @@
 use crate::state::{organisation::Organisation, HoldingWalletState, EmployeeContract};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer, Approve};
 use mercurial_vault::{cpi::accounts::DepositWithdrawLiquidity, program::Vault};
 
 pub fn pay_organisation_employee(
@@ -70,7 +70,6 @@ pub fn setup_organisation(
     admins.push(ctx.accounts.admin.key());
     organisation.admins = admins;
     organisation.bump = bump;
-    organisation.stream_wallet_bump = streaming_wallet_bump;
     organisation.stream_authority = ctx.accounts.stream_authority.key();
 
     Ok(())
@@ -91,6 +90,31 @@ pub fn setup_employee_contract(
     Ok(())
 }
 
+pub fn approve_tokens_for_streaming(
+    ctx: Context<ApproveTokensForStreaming>,
+    _organisation_id: String,
+    amount: u64,
+) -> Result<()> {
+    let balance = ctx.accounts.payer_token_account.amount;
+    if balance < amount {
+        panic!("Not enough balance")
+    }
+
+    let approve_cpi_accounts = Approve {
+        to: ctx.accounts.payer_token_account.to_account_info(),
+        delegate: ctx.accounts.organisation_streaming_authority.to_account_info(),
+        authority: ctx.accounts.payer.to_account_info(),
+    };
+    let approve_cpi_program = ctx.accounts.token_program.to_account_info();
+
+    token::approve(
+        CpiContext::new(approve_cpi_program, approve_cpi_accounts),
+        amount,
+    )?;
+
+    Ok(())
+}
+
 #[derive(Accounts)]
 #[instruction(_organisation_id: String)]
 pub struct SetupOrganisation<'info> {
@@ -102,13 +126,6 @@ pub struct SetupOrganisation<'info> {
         bump
     )]
     pub organisation: Account<'info, Organisation>,
-    #[account(
-        mut,
-        seeds=[b"streaming-wallet", _organisation_id.as_bytes()],
-        bump,
-    )]
-    /// CHECK: This is not dangerous because we don't read or write from this account
-    pub streaming_wallet: AccountInfo<'info>,
     #[account(mut)]
     pub admin: Signer<'info>,
     pub stream_authority: Signer<'info>,
@@ -182,4 +199,28 @@ pub struct SetupEmployeeContract<'info> {
     pub payer: Signer<'info>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(_organisation_id: String)]
+pub struct ApproveTokensForStreaming<'info> {
+    #[account(
+        seeds = [b"organisation", _organisation_id.as_bytes()],
+        bump,
+    )]
+    pub organisation: Box<Account<'info, Organisation>>,
+    pub mint : Account<'info, Mint>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut)]
+    pub payer_token_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub treasury: AccountInfo<'info>,
+    #[account(
+        seeds = [b"organisation-streaming-authority", _organisation_id.as_bytes(), treasury.key().as_ref()],
+        bump
+    )]
+    pub organisation_streaming_authority: AccountInfo<'info>,
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub token_program: Program<'info, Token>,
 }
