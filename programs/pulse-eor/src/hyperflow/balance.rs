@@ -1,15 +1,12 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{TokenAccount, Mint, Approve, self};
+use anchor_spl::token::{self, Approve, Mint, TokenAccount};
 
 use crate::state::HypeflowTokenBalance;
 
-pub fn set_up_token_balance(
-    ctx: Context<SetTokenBalance>,
-    amount: u64,
-) -> Result<()> {
+pub fn set_up_token_balance(ctx: Context<SetTokenBalance>, amount: u64) -> Result<()> {
     let token_delegate_bump = *ctx.bumps.get("token_delegate").unwrap();
     let token_balance_state_bump = *ctx.bumps.get("token_balance_state").unwrap();
-    let aggregates:  Vec<Pubkey> = Vec::new();
+    let aggregates: Vec<Pubkey> = Vec::new();
 
     let token_balance_state = &mut ctx.accounts.token_balance_state;
     token_balance_state.bump = token_balance_state_bump;
@@ -19,7 +16,7 @@ pub fn set_up_token_balance(
     let cpi_accounts = Approve {
         to: ctx.accounts.payer_token_account.to_account_info(),
         delegate: ctx.accounts.token_delegate.to_account_info(),
-        authority: ctx.accounts.payer.to_account_info()
+        authority: ctx.accounts.payer.to_account_info(),
     };
 
     let cpi_program = ctx.accounts.token_program.to_account_info();
@@ -31,14 +28,11 @@ pub fn set_up_token_balance(
     Ok(())
 }
 
-pub fn reset_delegation(
-    ctx: Context<ResetDelegation>,
-    amount: u64,
-) -> Result<()> {
+pub fn reset_delegation(ctx: Context<ResetDelegation>, amount: u64) -> Result<()> {
     let cpi_accounts = Approve {
         to: ctx.accounts.payer_token_account.to_account_info(),
         delegate: ctx.accounts.token_delegate.to_account_info(),
-        authority: ctx.accounts.payer.to_account_info()
+        authority: ctx.accounts.payer.to_account_info(),
     };
 
     let cpi_program = ctx.accounts.token_program.to_account_info();
@@ -48,7 +42,6 @@ pub fn reset_delegation(
     token::approve(cpi_ctx, amount)?;
     Ok(())
 }
-
 
 #[derive(Accounts)]
 pub struct SetTokenBalance<'info> {
@@ -62,6 +55,7 @@ pub struct SetTokenBalance<'info> {
         seeds=[b"token-delegate", payer_token_account.key().as_ref(), mint.key().as_ref()],
         bump
     )]
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub token_delegate: AccountInfo<'info>,
     #[account(
         init,
@@ -71,6 +65,7 @@ pub struct SetTokenBalance<'info> {
         bump
     )]
     pub token_balance_state: Box<Account<'info, HypeflowTokenBalance>>,
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub token_program: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -87,11 +82,13 @@ pub struct ResetDelegation<'info> {
         seeds=[b"token-delegate", payer_token_account.key().as_ref(), mint.key().as_ref()],
         bump=token_balance_state.delegate_bump
     )]
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub token_delegate: AccountInfo<'info>,
     #[account(
         seeds=[b"token-balance-state", payer_token_account.key().as_ref(), mint.key().as_ref()],
         bump=token_balance_state.bump
     )]
     pub token_balance_state: Account<'info, HypeflowTokenBalance>,
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub token_program: AccountInfo<'info>,
 }

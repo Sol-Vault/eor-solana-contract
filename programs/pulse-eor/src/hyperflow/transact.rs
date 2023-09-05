@@ -1,12 +1,9 @@
-use anchor_lang::{prelude::*};
-use anchor_spl::token::{Mint, Token, TokenAccount, self, Transfer};
+use anchor_lang::prelude::*;
+use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
-use crate::state::{HyperflowStream, HyperflowStreamAggregate, HypeflowTokenBalance};
+use crate::state::{HypeflowTokenBalance, HyperflowStream, HyperflowStreamAggregate};
 
-pub fn withdraw_from_stream (
-    ctx: Context<WithdrawFromStream>,
-    amount: u64,
-) -> Result<()> {
+pub fn withdraw_from_stream(ctx: Context<WithdrawFromStream>, amount: u64) -> Result<()> {
     let cpi_accounts = Transfer {
         from: ctx.accounts.payer_token_account.to_account_info(),
         to: ctx.accounts.withdrawer.to_account_info(),
@@ -64,6 +61,7 @@ pub struct WithdrawFromStream<'info> {
         seeds=[b"token-delegate", payer_token_account.key().as_ref(), mint.key().as_ref()],
         bump=token_balance_state.delegate_bump
     )]
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub delegate: AccountInfo<'info>,
     #[account(
         seeds=[b"token-balance-state", payer_token_account.key().as_ref(), mint.key().as_ref()],

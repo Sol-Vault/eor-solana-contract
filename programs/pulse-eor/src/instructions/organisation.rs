@@ -119,6 +119,7 @@ pub struct SetupOrganisation<'info> {
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub treasury_delegate: AccountInfo<'info>,
     #[account(mut)]
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub treasury: AccountInfo<'info>,
     #[account(mut)]
     pub admin: Signer<'info>,

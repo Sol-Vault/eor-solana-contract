@@ -52,6 +52,7 @@ pub struct SetupStreamAggregate<'info> {
     )]
     pub stream: Account<'info, HyperflowStream>,
     pub mint: Account<'info, Mint>,
+        /// CHECK: This is not dangerous because we don't read or write from this account
     pub payee: AccountInfo<'info>,
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -90,6 +91,7 @@ pub struct AddStream<'info> {
     pub stream: Account<'info, HyperflowStream>,
     #[account(mut)]
     pub payer: Signer<'info>,
+    /// CHECK: This is not dangerous because we don't read or write from this account
     pub payee: AccountInfo<'info>,
     pub mint: Account<'info, Mint>,
     pub system_program: Program<'info, System>,

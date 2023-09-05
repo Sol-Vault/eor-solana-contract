@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use instructions::*;
+use hyperflow::*;
 
 declare_id!("DafQCS2iwRB48xvjYa1Nsxz5wFDuMXq37qCmy4Sov8ce");
 
@@ -87,5 +88,46 @@ pub mod pulse_eor {
         print!("Withdrawing from stream wallet");
         instructions::stream::withdraw_from_stream_wallet(ctx, _organisation_id, amount)
     }
+
+    pub fn set_up_token_balance(
+        ctx: Context<SetTokenBalance>,
+        amount: u64,
+    ) -> Result<()> {
+        print!("Setting up token balance");
+        hyperflow::balance::set_up_token_balance(ctx, amount)
+    }
+
+    pub fn reset_delegation(
+        ctx: Context<ResetDelegation>,
+        amount: u64,
+    ) -> Result<()> {
+        print!("Resetting delegation");
+        hyperflow::balance::reset_delegation(ctx, amount)
+    }
+
+    pub fn setup_stream_aggregate (
+        ctx: Context<SetupStreamAggregate>,
+        payee: Pubkey,
+        per_second_rate: u64,
+    ) -> Result<()> {
+        print!("Setting up stream aggregate");
+        hyperflow::stream::setup_stream_aggregate(ctx, payee, per_second_rate)
+    }
+
+    pub fn add_stream (
+        ctx: Context<AddStream>,
+    ) -> Result<()> {
+        print!("Adding stream");
+        hyperflow::stream::add_stream(ctx)
+    }
+
+    pub fn withdraw_from_stream (
+        ctx: Context<WithdrawFromStream>,
+        amount: u64,
+    ) -> Result<()> {
+        print!("Withdrawing from stream");
+        hyperflow::transact::withdraw_from_stream(ctx, amount)
+    }
+
     
 }
