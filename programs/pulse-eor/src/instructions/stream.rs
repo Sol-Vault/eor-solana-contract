@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{TokenAccount, Token, Transfer, self};
 
 use crate::state::{EmployeeContract, Organisation};
+use crate::error::NovaError;
 
 pub fn pay_contract(
     ctx: Context<PayContract>,
@@ -11,11 +12,15 @@ pub fn pay_contract(
 ) -> Result<()> {
     let balance = ctx.accounts.streaming_wallet_token_account.amount;
     if balance < amount {
-        panic!("Not enough balance")
+        return err!(NovaError::NotEnoughBalanceError)
     }
 
     if ctx.accounts.organisation.stream_authority != *ctx.accounts.payer.to_account_info().key {
-        panic!("Payer is not the stream authority")
+        return err!(NovaError::PayerIsNotStreamAuthority)
+    }
+
+    if ctx.accounts.employee_contract.payee != *ctx.accounts.employee_token_account.to_account_info().key {
+        return err!(NovaError::NotEmployeeTokenAccount)
     }
 
     let cpi_accounts = Transfer {

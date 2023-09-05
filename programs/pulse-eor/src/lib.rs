@@ -5,6 +5,8 @@ declare_id!("DafQCS2iwRB48xvjYa1Nsxz5wFDuMXq37qCmy4Sov8ce");
 
 pub mod instructions;
 pub mod state;
+pub mod error;
+pub mod stream;
 
 #[program]
 pub mod pulse_eor {

@@ -65,6 +65,7 @@ pub fn setup_organisation(
     let organisation = &mut ctx.accounts.organisation;
     let bump = *ctx.bumps.get("organisation").unwrap();
     let streaming_wallet_bump = *ctx.bumps.get("streaming_wallet").unwrap();
+    let treasury_delegate_bump = *ctx.bumps.get("treasury_delegate").unwrap();
 
     let mut admins:  Vec<Pubkey> = Vec::new();
     admins.push(ctx.accounts.admin.key());
@@ -72,6 +73,7 @@ pub fn setup_organisation(
     organisation.bump = bump;
     organisation.stream_wallet_bump = streaming_wallet_bump;
     organisation.stream_authority = ctx.accounts.stream_authority.key();
+    organisation.treasury_delegate_bump = treasury_delegate_bump;
 
     Ok(())
 }
@@ -109,6 +111,15 @@ pub struct SetupOrganisation<'info> {
     )]
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub streaming_wallet: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds=[b"treasury-delegate", _organisation_id.as_bytes(), treasury.to_account_info().key.as_ref()],
+        bump,
+    )]
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub treasury_delegate: AccountInfo<'info>,
+    #[account(mut)]
+    pub treasury: AccountInfo<'info>,
     #[account(mut)]
     pub admin: Signer<'info>,
     pub stream_authority: Signer<'info>,
