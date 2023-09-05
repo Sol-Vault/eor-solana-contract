@@ -1,4 +1,4 @@
-use anchor_lang::{prelude::*, solana_program::address_lookup_table_account::AddressLookupTableAccount};
+use anchor_lang::prelude::*;
 use anchor_spl::token::{TokenAccount, Mint, Approve, self};
 
 use crate::state::HypeflowTokenBalance;

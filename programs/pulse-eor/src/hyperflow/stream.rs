@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 
-use crate::{state::{HyperflowStreamAggregate, HyperflowStream}, instructions::stream};
+use crate::state::{HyperflowStreamAggregate, HyperflowStream};
 
 
 pub fn setup_stream_aggregate (
@@ -47,7 +47,7 @@ pub struct SetupStreamAggregate<'info> {
         init, 
         payer = payer,
         space = 8 + 1 * HyperflowStream::SIZE,
-        seeds = [b"stream", payee.key().as_ref(), mint.key().as_ref()],
+        seeds = [b"stream", aggregate.key().as_ref(), mint.key().as_ref()],
         bump
     )]
     pub stream: Account<'info, HyperflowStream>,
@@ -84,7 +84,7 @@ pub struct AddStream<'info> {
         init,
         payer = payer,
         space = 8 + 1 * HyperflowStream::SIZE,
-        seeds = [b"stream", payee.key().as_ref(), mint.key().as_ref()],
+        seeds = [b"stream", aggregate.key().as_ref(), mint.key().as_ref()],
         bump
     )]
     pub stream: Account<'info, HyperflowStream>,

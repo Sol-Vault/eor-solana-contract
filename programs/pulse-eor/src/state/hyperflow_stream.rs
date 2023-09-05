@@ -9,6 +9,7 @@ pub struct HyperflowStream {
     pub last_withdrawn: i64,
     pub payer: Pubkey,
     pub bump: u8,
+    pub delegate: Pubkey,
 }
 
 impl HyperflowStream {
